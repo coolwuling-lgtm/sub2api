@@ -388,6 +388,10 @@ export default {
     channelMonitor: '渠道监控',
     channelStatus: '渠道状态',
     riskControl: '风控中心',
+    groupOperations: '运营数据',
+    groupSupply: '账号与渠道',
+    groupRevenue: '营收与增长',
+    groupSystem: '用户与系统',
   },
 
   // Auth

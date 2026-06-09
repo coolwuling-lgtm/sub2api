@@ -388,6 +388,10 @@ export default {
     channelMonitor: 'Channel Monitor',
     channelStatus: 'Channel Status',
     riskControl: 'Risk Control',
+    groupOperations: 'Operations',
+    groupSupply: 'Accounts & Channels',
+    groupRevenue: 'Revenue & Growth',
+    groupSystem: 'Users & System',
   },
 
   // Auth

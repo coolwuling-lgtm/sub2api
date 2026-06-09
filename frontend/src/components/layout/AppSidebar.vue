@@ -61,9 +61,19 @@
                   :to="child.path"
                   class="sidebar-link mb-0.5 py-1.5 text-sm"
                   :class="{ 'sidebar-link-active': route.path === child.path }"
+                  :id="
+                    child.path === '/admin/accounts'
+                      ? 'sidebar-channel-manage'
+                      : child.path === '/admin/groups'
+                        ? 'sidebar-group-manage'
+                        : child.path === '/admin/redeem'
+                          ? 'sidebar-wallet'
+                          : undefined
+                  "
                   @click="handleMenuItemClick(child.path)"
                 >
-                  <component :is="child.icon" class="h-4 w-4 flex-shrink-0" />
+                  <span v-if="child.iconSvg" class="h-4 w-4 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(child.iconSvg)"></span>
+                  <component v-else :is="child.icon" class="h-4 w-4 flex-shrink-0" />
                   <span>{{ child.label }}</span>
                 </router-link>
               </div>
@@ -187,27 +197,19 @@ import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore } 
 import VersionBadge from '@/components/common/VersionBadge.vue'
 import { sanitizeSvg } from '@/utils/sanitize'
 import { FeatureFlags, makeSidebarFlag } from '@/utils/featureFlags'
-
-interface NavItem {
-  path: string
-  label: string
-  icon: unknown
-  iconSvg?: string
-  hideInSimpleMode?: boolean
-  children?: NavItem[]
-  /**
-   * When true, the parent item only toggles the expand/collapse state and
-   * does NOT navigate to its `path`. The `path` is purely a stable key.
-   */
-  expandOnly?: boolean
-  /**
-   * 可选的功能开关 getter。返回 false 时菜单项被隐藏；返回 undefined/true 时显示。
-   * 宽容策略（undefined → 显示）避免 public settings 未加载完成时菜单闪烁消失。
-   * Getter 里访问的 reactive 来源（store / composable）会被 computed 自动追踪，
-   * 开关切换时菜单自动更新。
-   */
-  featureFlag?: () => boolean | undefined
-}
+import {
+  ADMIN_NAV_GROUP_KEYS,
+  ADMIN_NAV_GROUP_MEMBERS,
+  ONBOARDING_ANCHOR_PATHS,
+  computeDefaultExpandedGroups,
+  flattenAdminLeaves,
+  groupAdminNav,
+  groupsForOnboardingAnchors,
+  parseStoredExpandedGroups,
+  serializeExpandedGroups,
+  type AdminNavGroupConfig,
+  type NavItem,
+} from './adminNav'
 
 // applyFeatureFlags 递归过滤掉 featureFlag() === false 的节点（含子节点）。
 // 使用 `!== false` 宽容语义：undefined（设置未加载）或 true 都视为显示。
@@ -238,8 +240,30 @@ const mobileOpen = computed(() => appStore.mobileOpen)
 const isAdmin = computed(() => authStore.isAdmin)
 const isDark = ref(document.documentElement.classList.contains('dark'))
 
-// Track which parent nav groups are expanded
-const expandedGroups = ref<Set<string>>(new Set())
+// Track which admin nav category groups are expanded. The expansion state is
+// persisted so a user's manual collapse/expand is remembered across reloads.
+const ADMIN_GROUPS_STORAGE_KEY = 'sidebar:adminGroups'
+
+function readStoredAdminGroups(): string[] | null {
+  try {
+    return parseStoredExpandedGroups(localStorage.getItem(ADMIN_GROUPS_STORAGE_KEY))
+  } catch {
+    return null
+  }
+}
+
+function persistAdminGroups(groups: Set<string>): void {
+  try {
+    localStorage.setItem(ADMIN_GROUPS_STORAGE_KEY, serializeExpandedGroups(groups))
+  } catch {
+    /* ignore quota errors / storage disabled (e.g. private mode) */
+  }
+}
+
+const storedAdminGroups = readStoredAdminGroups()
+// `null` → no memory yet (defaults seeded once groups are known); array → use it.
+const expandedGroups = ref<Set<string>>(new Set(storedAdminGroups ?? []))
+const adminGroupsInitialized = ref(storedAdminGroups !== null)
 
 // Site settings from appStore (cached, no flicker)
 const siteName = computed(() => appStore.siteName)
@@ -713,6 +737,38 @@ const customMenuItemsForAdmin = computed(() => {
     .sort((a, b) => a.sort_order - b.sort_order)
 })
 
+// Display config for the four SaaS-mode admin categories. The pure module owns
+// the leaf ordering (ADMIN_NAV_GROUP_MEMBERS); here we only attach i18n labels
+// and icons. See docs/superpowers/specs/2026-06-09-admin-menu-restructure-design.md §4.
+const adminNavGroupConfigs = computed((): AdminNavGroupConfig[] => [
+  {
+    key: ADMIN_NAV_GROUP_KEYS.operations,
+    label: t('nav.groupOperations'),
+    icon: ChartIcon,
+    members: ADMIN_NAV_GROUP_MEMBERS[ADMIN_NAV_GROUP_KEYS.operations],
+  },
+  {
+    key: ADMIN_NAV_GROUP_KEYS.supply,
+    label: t('nav.groupSupply'),
+    icon: GlobeIcon,
+    members: ADMIN_NAV_GROUP_MEMBERS[ADMIN_NAV_GROUP_KEYS.supply],
+  },
+  {
+    key: ADMIN_NAV_GROUP_KEYS.revenue,
+    label: t('nav.groupRevenue'),
+    icon: CreditCardIcon,
+    members: ADMIN_NAV_GROUP_MEMBERS[ADMIN_NAV_GROUP_KEYS.revenue],
+  },
+  {
+    key: ADMIN_NAV_GROUP_KEYS.system,
+    label: t('nav.groupSystem'),
+    icon: CogIcon,
+    members: ADMIN_NAV_GROUP_MEMBERS[ADMIN_NAV_GROUP_KEYS.system],
+    // Custom admin menu items (/custom/...) land at the end of this group.
+    catchAll: true,
+  },
+])
+
 // Admin navigation items
 const adminNavItems = computed((): NavItem[] => {
   const baseItems: NavItem[] = [
@@ -780,11 +836,22 @@ const adminNavItems = computed((): NavItem[] => {
     return filtered
   }
 
-  visible.push({ path: '/admin/settings', label: t('nav.settings'), icon: CogIcon })
-  for (const cm of customMenuItemsForAdmin.value) {
-    visible.push({ path: `/custom/${cm.id}`, label: cm.label, icon: null, iconSvg: cm.icon_svg })
-  }
-  return visible
+  // SaaS default mode: organize the (already feature-flag-filtered) leaves into
+  // the four expandOnly business categories. Routes/paths/flags are unchanged —
+  // only the grouping/order differs (see design doc §4–5). Settings and custom
+  // menu items are added as leaves; the pure grouper places them and drops any
+  // category left empty by feature flags.
+  const leaves: NavItem[] = [
+    ...flattenAdminLeaves(visible),
+    { path: '/admin/settings', label: t('nav.settings'), icon: CogIcon },
+    ...customMenuItemsForAdmin.value.map((cm): NavItem => ({
+      path: `/custom/${cm.id}`,
+      label: cm.label,
+      icon: null,
+      iconSvg: cm.icon_svg,
+    })),
+  ]
+  return groupAdminNav(leaves, adminNavGroupConfigs.value)
 })
 
 function toggleSidebar() {
@@ -830,23 +897,48 @@ function isGroupActive(item: NavItem): boolean {
   return item.children.some(child => route.path === child.path)
 }
 
+// Groups force-expanded for the duration of the onboarding tour. Some tour
+// anchors (#sidebar-group-manage → group:system, #sidebar-channel-manage →
+// group:supply) now live inside collapsible groups; if their group is collapsed
+// the anchored child link is never rendered and the tour stalls. While the
+// driver is active we derive the owning groups (pure mapping) and force them
+// open. This is computed-only — it never touches `expandedGroups`/localStorage,
+// so the user's remembered expansion is preserved and restored when the tour ends.
+const onboardingForcedGroups = computed<Set<string>>(() => {
+  if (!onboardingStore.isDriverActive()) return new Set<string>()
+  return groupsForOnboardingAnchors(Object.keys(ONBOARDING_ANCHOR_PATHS))
+})
+
+// Expansion is primarily memory-driven: a group is open iff it is in the
+// remembered set. This lets a manual collapse be respected (and persisted)
+// even while one of its children is the active route. The onboarding tour adds
+// a temporary, non-persisted force-open on top (see `onboardingForcedGroups`).
 function isGroupExpanded(item: NavItem): boolean {
-  return expandedGroups.value.has(item.path) || isGroupActive(item)
+  return expandedGroups.value.has(item.path) || onboardingForcedGroups.value.has(item.path)
+}
+
+// Immutable update: build a fresh Set, swap the ref, then persist.
+function setExpandedGroups(next: Set<string>) {
+  expandedGroups.value = next
+  adminGroupsInitialized.value = true
+  persistAdminGroups(next)
 }
 
 function toggleGroup(item: NavItem) {
-  if (expandedGroups.value.has(item.path)) {
-    expandedGroups.value.delete(item.path)
+  const next = new Set(expandedGroups.value)
+  if (next.has(item.path)) {
+    next.delete(item.path)
   } else {
-    expandedGroups.value.add(item.path)
+    next.add(item.path)
   }
+  setExpandedGroups(next)
 }
 
 /**
  * Click handler for collapsible parent items.
  * - When sidebar is collapsed: do nothing (children are not visible).
  * - When `expandOnly` is true: only toggle expand state.
- * - Otherwise (default, e.g. /admin/orders): navigate to the parent path
+ * - Otherwise (legacy non-expandOnly groups): navigate to the parent path
  *   (router-link semantics) and ensure the group is expanded.
  */
 function handleGroupClick(item: NavItem) {
@@ -860,7 +952,9 @@ function handleGroupClick(item: NavItem) {
     router.push(item.path)
   }
   if (!expandedGroups.value.has(item.path)) {
-    expandedGroups.value.add(item.path)
+    const next = new Set(expandedGroups.value)
+    next.add(item.path)
+    setExpandedGroups(next)
   }
 }
 
@@ -873,6 +967,23 @@ if (
   isDark.value = true
   document.documentElement.classList.add('dark')
 }
+
+// Seed the default expansion once (no stored memory yet): keep 运营数据 open
+// plus whichever category contains the active route, so the first paint shows
+// the dashboard and the current page. After this, the persisted memory drives
+// expansion and is respected verbatim.
+watch(
+  adminNavItems,
+  (groups) => {
+    if (adminGroupsInitialized.value) return
+    if (!isAdmin.value || authStore.isSimpleMode) return
+    // Wait until the grouped structure is actually built.
+    if (!groups.some(g => g.children?.length)) return
+    const defaults = computeDefaultExpandedGroups(groups, isActive, ADMIN_NAV_GROUP_KEYS.operations)
+    setExpandedGroups(defaults)
+  },
+  { immediate: true }
+)
 
 // Fetch admin settings (for feature-gated nav items like Ops).
 watch(
