@@ -1,0 +1,155 @@
+/* =============================================================================
+ * home-immersive.css — Design system for the immersive HomeView redesign
+ * -----------------------------------------------------------------------------
+ * Everything here is scoped under `.home-immersive` so it can be imported
+ * globally without affecting the rest of the app (dashboard, auth, admin).
+ * The homepage is a fixed DARK immersive experience regardless of the global
+ * light/dark theme toggle — these tokens are the single source of truth.
+ *
+ * ALL colors MUST be referenced via these CSS variables — never hardcode hex
+ * values in section components. Sections compose with the token variables, the
+ * `.home-section` layout wrapper, `.home-glass` surface, and the `.home-h1` /
+ * `.home-h2` / `.home-body` typography helpers.
+ * ===========================================================================*/
+
+.home-immersive {
+  /* --- Color tokens ------------------------------------------------------- */
+  --home-bg: #06080d; /* deepest background */
+  --home-bg-2: #0a0e16; /* secondary background / section bands */
+  --home-surface: rgba(255, 255, 255, 0.04); /* glass / card base */
+  --home-surface-2: rgba(255, 255, 255, 0.07); /* raised / hover surface */
+  --home-border: rgba(255, 255, 255, 0.08); /* hairline borders / rings */
+  --home-primary: #14b8a6; /* teal — primary brand */
+  --home-primary-glow: rgba(20, 184, 166, 0.45); /* teal glow for shadows */
+  --home-accent: #8b5cf6; /* violet accent */
+  --home-accent-2: #d946ef; /* magenta accent */
+  --home-text: #e8edf4; /* primary text */
+  --home-text-dim: #8b97a8; /* secondary / muted text */
+  --home-shadow: rgba(0, 0, 0, 0.6); /* ambient drop shadow */
+  --home-shadow-strong: rgba(0, 0, 0, 0.7); /* raised / hover drop shadow */
+
+  /* --- Typography tokens -------------------------------------------------- */
+  --home-h1: clamp(2.5rem, 7vw, 5.5rem);
+  --home-h2: clamp(1.75rem, 4vw, 3rem);
+  --home-body: clamp(1rem, 1.4vw, 1.2rem);
+  --home-title-weight: 800;
+  --home-title-tracking: -0.02em;
+
+  /* --- Spacing / layout tokens ------------------------------------------- */
+  --home-section-py: clamp(5rem, 12vh, 9rem); /* vertical section rhythm */
+  --home-content-max: 72rem; /* centered content max-width */
+  --home-gutter: clamp(1.25rem, 5vw, 3rem); /* horizontal page gutter */
+  --home-radius: 1.5rem; /* glass / card corner radius */
+  --home-radius-sm: 0.875rem;
+
+  /* --- Motion tokens (for reference — JS reads HOME_MOTION in useHomeScroll)
+   * enter:  duration 0.7–0.9s, ease 'power3.out'
+   * stagger: 0.08–0.12s
+   * scrub:  0.5–1 (or `true` for tight scrub on parallax)
+   * reveal: ScrollTrigger start 'top 82%', play once (no reverse)
+   * Honour `prefers-reduced-motion`: render static final state, no scrub/pin.
+   * ---------------------------------------------------------------------- */
+
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--home-bg);
+  color: var(--home-text);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+}
+
+/* Respect reduced-motion at the CSS layer too (covers pure-CSS animations). */
+@media (prefers-reduced-motion: reduce) {
+  .home-immersive *,
+  .home-immersive *::before,
+  .home-immersive *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Layout helpers ------------------------------------------------------- */
+
+/* Standard section: vertical rhythm + horizontal gutter. */
+.home-immersive .home-section {
+  position: relative;
+  width: 100%;
+  padding-block: var(--home-section-py);
+  padding-inline: var(--home-gutter);
+}
+
+/* Centered content column inside a section. */
+.home-immersive .home-container {
+  width: 100%;
+  max-width: var(--home-content-max);
+  margin-inline: auto;
+}
+
+/* --- Typography helpers --------------------------------------------------- */
+.home-immersive .home-h1 {
+  font-size: var(--home-h1);
+  font-weight: var(--home-title-weight);
+  letter-spacing: var(--home-title-tracking);
+  line-height: 1.04;
+  color: var(--home-text);
+}
+
+.home-immersive .home-h2 {
+  font-size: var(--home-h2);
+  font-weight: var(--home-title-weight);
+  letter-spacing: var(--home-title-tracking);
+  line-height: 1.1;
+  color: var(--home-text);
+}
+
+.home-immersive .home-body {
+  font-size: var(--home-body);
+  line-height: 1.65;
+  color: var(--home-text-dim);
+}
+
+/* Gradient text accent for emphasised words/headlines. */
+.home-immersive .home-gradient-text {
+  background-image: linear-gradient(
+    100deg,
+    var(--home-primary) 0%,
+    var(--home-accent) 55%,
+    var(--home-accent-2) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* --- Surfaces ------------------------------------------------------------- */
+
+/* Glassmorphism card: translucent surface + blur + hairline border + radius. */
+.home-immersive .home-glass {
+  background-color: var(--home-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-radius);
+}
+
+/* Slightly raised / hover variant. */
+.home-immersive .home-glass-2 {
+  background-color: var(--home-surface-2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-radius);
+}
+
+/* --- Utilities ------------------------------------------------------------ */
+
+/* Force GPU compositing for elements that animate transform/opacity. */
+.home-immersive .home-gpu {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}

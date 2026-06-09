@@ -46,6 +46,7 @@ export default {
       subtitle: 'Three simple steps to stress-free AI access'
     },
     features: {
+      title: 'Core Capabilities',
       unifiedGateway: 'One-Click Access',
       unifiedGatewayDesc: 'Get a single API key to call all connected AI models. No separate applications needed.',
       multiAccount: 'Always Reliable',
@@ -99,9 +100,71 @@ export default {
       antigravity: 'Antigravity',
       more: 'More'
     },
+    // Hero section (immersive redesign)
+    hero: {
+      badge: 'Unified AI Gateway',
+      primaryCta: 'Get Started Free',
+      secondaryCta: 'View Documentation'
+    },
+    // Request flow narrative (immersive redesign)
+    requestFlow: {
+      title: 'How a request flows',
+      subtitle: 'From your client to the upstream model — routed, scheduled, and billed in a single pass.',
+      steps: {
+        client: {
+          label: 'Client',
+          desc: 'Your app calls one OpenAI-compatible endpoint with a single API key.'
+        },
+        gateway: {
+          label: 'Gateway',
+          desc: 'The gateway authenticates the key and applies rate limits and policies.'
+        },
+        select: {
+          label: 'Account Selection',
+          desc: 'Smart scheduling picks a healthy upstream account with sticky-session affinity.'
+        },
+        upstream: {
+          label: 'Upstream Model',
+          desc: 'The request is translated and forwarded to Claude, GPT, Gemini, and more.'
+        },
+        billing: {
+          label: 'Billing',
+          desc: 'Tokens are metered and billed in real time, with quotas enforced per key.'
+        }
+      }
+    },
+    // One-line switch (immersive redesign)
+    oneLine: {
+      title: 'Switch in one line',
+      subtitle: 'Already using the OpenAI SDK? Point base_url at the gateway — nothing else changes.',
+      note: 'Drop-in compatible — keep your existing SDK, models, and code.'
+    },
+    // Qualitative stats (immersive redesign — no fabricated numbers)
+    stats: {
+      title: 'Built for production',
+      items: {
+        unifiedEntry: {
+          label: 'Unified Entry',
+          desc: 'One API key and endpoint for every connected model.'
+        },
+        smartScheduling: {
+          label: 'Smart Scheduling',
+          desc: 'Multi-account pools with load-aware, sticky routing.'
+        },
+        tokenBilling: {
+          label: 'Token-Level Billing',
+          desc: 'Usage metered per token, with per-key quotas.'
+        },
+        autoFailover: {
+          label: 'Automatic Failover',
+          desc: 'Unhealthy accounts are skipped and retried transparently.'
+        }
+      }
+    },
     // CTA section
     cta: {
       title: 'Ready to Get Started?',
+      subtitle: 'Sign up and get free trial credits to experience unified AI access.',
       description: 'Sign up now and get free trial credits to experience seamless AI access',
       button: 'Sign Up Free'
     },

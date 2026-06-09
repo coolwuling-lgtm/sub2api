@@ -46,6 +46,7 @@ export default {
       subtitle: '简单三步，开始省心使用 AI'
     },
     features: {
+      title: '核心能力',
       unifiedGateway: '一键接入',
       unifiedGatewayDesc: '获取一个 API 密钥，即可调用所有已接入的 AI 模型，无需分别申请。',
       multiAccount: '稳定可靠',
@@ -99,9 +100,71 @@ export default {
       antigravity: 'Antigravity',
       more: '更多'
     },
+    // Hero 区块（沉浸式重设计）
+    hero: {
+      badge: '统一 AI 网关',
+      primaryCta: '免费开始',
+      secondaryCta: '查看文档'
+    },
+    // 请求流叙事（沉浸式重设计）
+    requestFlow: {
+      title: '一次请求的旅程',
+      subtitle: '从你的客户端到上游模型——一次完成路由、调度与计费。',
+      steps: {
+        client: {
+          label: '客户端',
+          desc: '你的应用使用同一个 API 密钥，调用统一的 OpenAI 兼容接口。'
+        },
+        gateway: {
+          label: '网关',
+          desc: '网关校验密钥，并应用限流与访问策略。'
+        },
+        select: {
+          label: '账号调度',
+          desc: '智能调度选出健康的上游账号，并保持会话粘性。'
+        },
+        upstream: {
+          label: '上游模型',
+          desc: '请求被转换并转发至 Claude、GPT、Gemini 等上游模型。'
+        },
+        billing: {
+          label: '计费',
+          desc: '按 token 实时计量计费，并按密钥执行配额。'
+        }
+      }
+    },
+    // 一行切换（沉浸式重设计）
+    oneLine: {
+      title: '一行即可切换',
+      subtitle: '已经在用 OpenAI SDK？把 base_url 指向网关即可，其它一律不动。',
+      note: '直接替换——沿用现有 SDK、模型与代码。'
+    },
+    // 定性亮点（沉浸式重设计——不编造数字）
+    stats: {
+      title: '为生产而生',
+      items: {
+        unifiedEntry: {
+          label: '统一入口',
+          desc: '一个 API 密钥与接口，调用所有已接入模型。'
+        },
+        smartScheduling: {
+          label: '智能调度',
+          desc: '多账号池，按负载与会话粘性智能路由。'
+        },
+        tokenBilling: {
+          label: '按 token 计费',
+          desc: '按 token 计量用量，支持按密钥设置配额。'
+        },
+        autoFailover: {
+          label: '自动故障转移',
+          desc: '自动跳过异常账号并透明重试。'
+        }
+      }
+    },
     // CTA 区块
     cta: {
       title: '准备好开始了吗？',
+      subtitle: '注册即送免费试用额度，体验一站式 AI 接入。',
       description: '注册即可获得免费试用额度，体验一站式 AI 服务',
       button: '免费注册'
     },
